@@ -9,10 +9,11 @@ output: github_document
 
 ```{r setup, include=FALSE}
 library(tidyverse)
+library(readxl)
 options(warn = -1)
 ```
 
-# data clean of pols_month
+data clean of pols_month
 
 ```{r}
 pols_month = read_csv(file = "pols-month.csv") %>%
@@ -25,7 +26,7 @@ pols_month = read_csv(file = "pols-month.csv") %>%
 pols_month
 ```
 
-# data clean of snp
+data clean of snp
 
 ```{r}
 snp = read_csv(file = "snp.csv") %>%
@@ -40,7 +41,7 @@ snp = read_csv(file = "snp.csv") %>%
 snp
 ```
 
-# tidy data unemployment 
+tidy data unemployment 
 
 ```{r}
 unemployment = read_csv(file = "unemployment.csv") %>%
@@ -61,12 +62,12 @@ unemployment = read_csv(file = "unemployment.csv") %>%
     month %in% c("dec", "december") ~ "December",
     TRUE ~ NA_character_
   )) %>%
-  select(year=Year, month, unemployment)
+  select(year=Year, month, unemployment, everything())
 
 unemployment
 ```
 
-# merge datasets
+merge datasets
 
 ```{r}
 merged_data <- inner_join(pols_month, snp, by = c("year", "month"))
@@ -79,6 +80,65 @@ final_data
 The dataset `final_data` comprises three primary sources of data, each contributing unique insights. Firstly, `pols_month` offers political data, containing information about the monthly representation of both Republican and Democratic officials at the levels of governor, senator, and representative. Secondly, `snp` contributes financial data, providing monthly closing values for the S&P stock index, which is often used as a benchmark for stock market performance. Lastly, `unemployment` presents economic data in a wide format, featuring monthly unemployment rates. The merged `final_data` dataset seamlessly combines these sources, resulting in a comprehensive dataset with `r nrow(final_data)` rows and `r ncol(final_data)` columns. The dataset spans from `r  range(pull(final_data, year), na.rm = TRUE)`, encompassing a wide range of historical information. Key variables in the dataset include `r colnames(final_data)`.
 
 ## Problem 2
+
+Read and Clean: MTW 
+
+```{r MTW}
+mtw_df = read_excel(
+  "202207 Trash Wheel Collection Data.xlsx",
+  cell_cols("A:N"),
+  sheet = "Mr. Trash Wheel") %>% 
+  janitor::clean_names() %>% 
+  drop_na(dumpster) %>% 
+  mutate(homes_powered_N = weight_tons*500/30,
+         wheel_type = c("MT")) %>% 
+  relocate(wheel_type,dumpster,year,month) 
+mtw_df
+```
+
+Read and Clean: PTW
+
+```{r PTW}
+ptw_df = read_excel(
+  "202207 Trash Wheel Collection Data.xlsx",
+  cell_cols("A:M"),
+  sheet = "Professor Trash Wheel") %>% 
+  janitor::clean_names() %>% 
+  drop_na(dumpster) %>% 
+  mutate(homes_powered_N = weight_tons*500/30,
+         wheel_type = c("PT")) %>% 
+  relocate(wheel_type,dumpster,year,month) 
+ptw_df
+```
+
+Read and Clean: GTW
+
+```{r GTW}
+gtw_df = read_excel(
+  "202207 Trash Wheel Collection Data.xlsx",
+  cell_cols("A:K"),
+  sheet = "Gwynnda Trash Wheel") %>% 
+  janitor::clean_names() %>% 
+  drop_na(dumpster) %>% 
+  mutate(homes_powered_N = weight_tons*500/30,
+         wheel_type = c("GT")) %>% 
+  relocate(wheel_type,dumpster,year,month) 
+gtw_df
+```
+
+Combine them together
+
+```{r combine}
+mtw_df$year <- as.double(mtw_df$year)
+combined_df <- bind_rows(mtw_df, ptw_df, gtw_df)
+combined_df
+```
+
+The dataset `combined_df` comprises data from three trash-collecting entities: Mr. Trash Wheel, Professor Trash Wheel, and Gwynnda Trash Wheel. In total, there are `r nrow(combined_df)` observations in the combined dataset, representing various trash collection events. Key variables include trash_weight, which denotes the weight of trash collected during each event, and homes_powered, representing the approximate number of homes powered by the collected trash. The total weight of trash collected by Professor Trash Wheel is `r sum(ptw_df$weight_tons)` tons, and the total number of cigarette butts collected by Gwynnda in July 2021 is `r format(sum(gtw_df$cigarette_butts[3:7]), scientific = F)`.
+
+## Problem 3
+
+
 
 
 

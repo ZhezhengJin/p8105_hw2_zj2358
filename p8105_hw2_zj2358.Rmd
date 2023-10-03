@@ -138,6 +138,17 @@ The dataset `combined_df` comprises data from three trash-collecting entities: M
 
 ## Problem 3
 
+Import, clean, and tidy MCI_bsaeline
+
+```{r}
+baseline = read_csv(file = "MCI_baseline.csv", skip=1) %>%
+  janitor::clean_names() %>%
+  mutate(sex = factor(sex, labels = c("Female", "Male")),
+         apoe4 = factor(apoe4, labels = c("APOE4 non-carrier", "APOE4 carrier")),
+         age_at_onset = as.numeric(age_at_onset)) %>%
+  drop_na(age_at_onset)
+baseline
+```
 
 
 

@@ -150,6 +150,18 @@ baseline = read_csv(file = "MCI_baseline.csv", skip=1) %>%
 baseline
 ```
 
+The import process involves reading the CSV file, cleaning column names, encoding categorical variables, converting data types where necessary, and handling missing data to prepare the dataset for further analysis. There are `r nrow(baseline)` participants were recruited in the dataset, and of these, `r sum(!is.na(baseline$age_at_onset))` developed MCI. The average baseline age is `r round(mean(baseline$current_age, na.rm=TRUE),digits = 2)` years old. `r (sum(baseline$sex == "Female" & baseline$apoe4 == "APOE4 carrier") / sum(baseline$sex == "Female")) * 100`% of women in the study are APOE4 carriers.
 
+Import, clean, and tidy mci_amyloid
+
+```{r}
+amyloid <- read_csv("mci_amyloid.csv", skip=1) %>%
+  janitor::clean_names() %>%
+  pivot_longer(cols = starts_with("time_"), names_to = "time", values_to = "measurement")
+amyloid
+```
+
+The import process for the `amyloid` dataset consists of several key steps. First, the CSV file is read using `read_csv`, and the header row is skipped to ensure data accuracy. Next, the `janitor::clean_names()` function is applied to standardize and clean the column names. Categorical variables are encoded for analysis, and data types are converted as needed. 
+There are `r nrow(distinct(amyloid$study_id))` observations in the dataset. The average baseline time is `r round(mean(distinct(amyloid$baseline, na.rm=TRUE)),digits = 2)` years.
 
 

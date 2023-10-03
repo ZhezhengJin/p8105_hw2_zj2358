@@ -150,18 +150,52 @@ baseline = read_csv(file = "MCI_baseline.csv", skip=1) %>%
 baseline
 ```
 
-The import process involves reading the CSV file, cleaning column names, encoding categorical variables, converting data types where necessary, and handling missing data to prepare the dataset for further analysis. There are `r nrow(baseline)` participants were recruited in the dataset, and of these, `r sum(!is.na(baseline$age_at_onset))` developed MCI. The average baseline age is `r round(mean(baseline$current_age, na.rm=TRUE),digits = 2)` years old. `r (sum(baseline$sex == "Female" & baseline$apoe4 == "APOE4 carrier") / sum(baseline$sex == "Female")) * 100`% of women in the study are APOE4 carriers.
+The import process involves reading the CSV file, cleaning column names, encoding categorical variables, converting data types where necessary, and handling missing data to prepare the dataset for further analysis. There are `r nrow(baseline)` participants were recruited in the dataset, and of these, `r sum(!is.na(baseline$age_at_onset))` developed MCI. The average baseline age is `r round(mean(baseline$current_age, na.rm=TRUE),digits = 0)` years old. There are `r round(sum(baseline$sex == "Female" & baseline$apoe4 == "APOE4 carrier") / sum(baseline$sex == "Female"), digits = 4) * 100`% of women in the study are APOE4 carriers.
 
 Import, clean, and tidy mci_amyloid
 
 ```{r}
 amyloid <- read_csv("mci_amyloid.csv", skip=1) %>%
   janitor::clean_names() %>%
-  pivot_longer(cols = starts_with("time_"), names_to = "time", values_to = "measurement")
+  mutate_at(vars(baseline, time_2, time_4, time_6, time_8), ~ as.numeric(.))
 amyloid
 ```
 
 The import process for the `amyloid` dataset consists of several key steps. First, the CSV file is read using `read_csv`, and the header row is skipped to ensure data accuracy. Next, the `janitor::clean_names()` function is applied to standardize and clean the column names. Categorical variables are encoded for analysis, and data types are converted as needed. 
-There are `r nrow(distinct(amyloid$study_id))` observations in the dataset. The average baseline time is `r round(mean(distinct(amyloid$baseline, na.rm=TRUE)),digits = 2)` years.
+There are `r nrow(distinct(amyloid, study_id))` participants were recruited in the dataset. The average baseline time is `r round(mean(amyloid$baseline, na.rm=TRUE),digits = 2)` years.
+
+
+Identify participants unique to each dataset
+
+```{r}
+participants_only_in_baseline <- baseline %>%
+  anti_join(amyloid, by = c("id" = "study_id")) %>%
+  select(id)
+
+participants_only_in_amyloid <- amyloid %>%
+  anti_join(baseline, by = c("study_id" = "id")) %>%
+  select(study_id)
+```
+
+There are  `r nrow(participants_only_in_baseline)` Participants unique to the baseline dataset, and `r nrow(participants_only_in_amyloid)` Participants unique to the amyloid dataset.
+
+
+Combine datasets for participants present in both datasets
+
+```{r}
+MCI_combined <- baseline %>%
+  inner_join(amyloid, by = c("id" = "study_id"))
+```
+
+The resulting dataset `MCI_combined` retains participants who appear in both the `baseline` and `amyloid` datasets, and has `r nrow(MCI_combined)` participants and `r ncol(MCI_combined)` variables. The variables include `r colnames(MCI_combined)`.
+
+
+Export the combined dataset as a CSV
+
+```{r}
+write.csv(MCI_combined, "MCI_combined.csv", row.names = FALSE)
+```
+
+
 
 

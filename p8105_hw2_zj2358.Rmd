@@ -5,8 +5,80 @@ date: "2023-10-02"
 output: github_document
 ---
 
-```{r setup, include=FALSE}
+## Problem 1
 
+```{r setup, include=FALSE}
+library(tidyverse)
+options(warn = -1)
 ```
+
+# data clean of pols_month
+
+```{r}
+pols_month = read_csv(file = "pols-month.csv") %>%
+  janitor::clean_names() %>%
+  separate(mon, into = c("year", "month", "day"), sep = "-") %>%
+  mutate(month = month.name[as.integer(month)],
+         president = ifelse(prez_dem == 1, "dem", ifelse(prez_gop == 1, "gop", NA))) %>%
+  select(-prez_dem, -prez_gop, -day)
+
+pols_month
+```
+
+# data clean of snp
+
+```{r}
+snp = read_csv(file = "snp.csv") %>%
+  janitor::clean_names() %>%
+  separate(date, into = c("month", "day", "year"), sep = "/") %>%
+  mutate(year = ifelse(year >= 0 & year <= 15, paste("20", year, sep = ""), paste("19", year, sep = ""))) %>%
+  mutate(month = month.name[as.integer(month)]) %>%
+  arrange(year, month) %>%
+  select(year, month, day, everything()) %>%
+  select(-day)
+
+snp
+```
+
+# tidy data unemployment 
+
+```{r}
+unemployment = read_csv(file = "unemployment.csv") %>%
+  pivot_longer(cols = -Year, names_to = "month", values_to = "unemployment") %>%
+  mutate(month = tolower(month)) %>%
+  mutate(month = case_when(
+    month %in% c("jan", "january") ~ "January",
+    month %in% c("feb", "february") ~ "February",
+    month %in% c("mar", "march") ~ "March",
+    month %in% c("apr", "april") ~ "April",
+    month %in% c("may") ~ "May",
+    month %in% c("jun", "june") ~ "June",
+    month %in% c("jul", "july") ~ "July",
+    month %in% c("aug", "august") ~ "August",
+    month %in% c("sep", "september") ~ "September",
+    month %in% c("oct", "october") ~ "October",
+    month %in% c("nov", "november") ~ "November",
+    month %in% c("dec", "december") ~ "December",
+    TRUE ~ NA_character_
+  )) %>%
+  select(year=Year, month, unemployment)
+
+unemployment
+```
+
+# merge datasets
+
+```{r}
+merged_data <- inner_join(pols_month, snp, by = c("year", "month"))
+unemployment$year <- as.character(unemployment$year)
+final_data <- inner_join(merged_data, unemployment, by = c("year", "month"))
+
+final_data
+```
+
+The dataset `final_data` comprises three primary sources of data, each contributing unique insights. Firstly, `pols_month` offers political data, containing information about the monthly representation of both Republican and Democratic officials at the levels of governor, senator, and representative. Secondly, `snp` contributes financial data, providing monthly closing values for the S&P stock index, which is often used as a benchmark for stock market performance. Lastly, `unemployment` presents economic data in a wide format, featuring monthly unemployment rates. The merged `final_data` dataset seamlessly combines these sources, resulting in a comprehensive dataset with `r nrow(final_data)` rows and `r ncol(final_data)` columns. The dataset spans from `r  range(pull(final_data, year), na.rm = TRUE)`, encompassing a wide range of historical information. Key variables in the dataset include `r colnames(final_data)`.
+
+## Problem 2
+
 
 

@@ -8,6 +8,7 @@ output: github_document
 ## Problem 1
 
 ```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE)
 library(tidyverse)
 library(readxl)
 options(warn = -1)
@@ -48,18 +49,18 @@ unemployment = read_csv(file = "unemployment.csv") %>%
   pivot_longer(cols = -Year, names_to = "month", values_to = "unemployment") %>%
   mutate(month = tolower(month)) %>%
   mutate(month = case_when(
-    month %in% c("jan", "january") ~ "January",
-    month %in% c("feb", "february") ~ "February",
-    month %in% c("mar", "march") ~ "March",
-    month %in% c("apr", "april") ~ "April",
+    month %in% c("jan") ~ "January",
+    month %in% c("feb") ~ "February",
+    month %in% c("mar") ~ "March",
+    month %in% c("apr") ~ "April",
     month %in% c("may") ~ "May",
-    month %in% c("jun", "june") ~ "June",
-    month %in% c("jul", "july") ~ "July",
-    month %in% c("aug", "august") ~ "August",
-    month %in% c("sep", "september") ~ "September",
-    month %in% c("oct", "october") ~ "October",
-    month %in% c("nov", "november") ~ "November",
-    month %in% c("dec", "december") ~ "December",
+    month %in% c("jun") ~ "June",
+    month %in% c("jul") ~ "July",
+    month %in% c("aug") ~ "August",
+    month %in% c("sep") ~ "September",
+    month %in% c("oct") ~ "October",
+    month %in% c("nov") ~ "November",
+    month %in% c("dec") ~ "December",
     TRUE ~ NA_character_
   )) %>%
   select(year=Year, month, unemployment, everything())
@@ -70,9 +71,9 @@ unemployment
 merge datasets
 
 ```{r}
-merged_data <- inner_join(pols_month, snp, by = c("year", "month"))
+merged_data <- left_join(pols_month, snp, by = c("year", "month"))
 unemployment$year <- as.character(unemployment$year)
-final_data <- inner_join(merged_data, unemployment, by = c("year", "month"))
+final_data <- left_join(merged_data, unemployment, by = c("year", "month"))
 
 final_data
 ```
@@ -85,7 +86,7 @@ Read and Clean: MTW
 
 ```{r MTW}
 mtw_df = read_excel(
-  "202207 Trash Wheel Collection Data.xlsx",
+  "202309 Trash Wheel Collection Data.xlsx",
   cell_cols("A:N"),
   sheet = "Mr. Trash Wheel") %>% 
   janitor::clean_names() %>% 
@@ -100,7 +101,7 @@ Read and Clean: PTW
 
 ```{r PTW}
 ptw_df = read_excel(
-  "202207 Trash Wheel Collection Data.xlsx",
+  "202309 Trash Wheel Collection Data.xlsx",
   cell_cols("A:M"),
   sheet = "Professor Trash Wheel") %>% 
   janitor::clean_names() %>% 
@@ -115,8 +116,8 @@ Read and Clean: GTW
 
 ```{r GTW}
 gtw_df = read_excel(
-  "202207 Trash Wheel Collection Data.xlsx",
-  cell_cols("A:K"),
+  "202309 Trash Wheel Collection Data.xlsx",
+  cell_cols("A:L"),
   sheet = "Gwynnda Trash Wheel") %>% 
   janitor::clean_names() %>% 
   drop_na(dumpster) %>% 
@@ -134,7 +135,7 @@ combined_df <- bind_rows(mtw_df, ptw_df, gtw_df)
 combined_df
 ```
 
-The dataset `combined_df` comprises data from three trash-collecting entities: Mr. Trash Wheel, Professor Trash Wheel, and Gwynnda Trash Wheel. In total, there are `r nrow(combined_df)` observations in the combined dataset, representing various trash collection events. Key variables include trash_weight, which denotes the weight of trash collected during each event, and homes_powered, representing the approximate number of homes powered by the collected trash. The total weight of trash collected by Professor Trash Wheel is `r sum(ptw_df$weight_tons)` tons, and the total number of cigarette butts collected by Gwynnda in July 2021 is `r format(sum(gtw_df$cigarette_butts[3:7]), scientific = F)`.
+The dataset `combined_df` comprises data from three trash-collecting entities: Mr. Trash Wheel, Professor Trash Wheel, and Gwynnda Trash Wheel. In total, there are `r nrow(combined_df)` observations in the combined dataset, representing various trash collection events. Key variables include trash_weight, which denotes the weight of trash collected during each event, and homes_powered, representing the approximate number of homes powered by the collected trash. The total weight of trash collected by Professor Trash Wheel is `r sum(ptw_df$weight_tons)` tons, and the total number of cigarette butts collected by Gwynnda in July 2021 is `r format(sum(gtw_df$cigarette_butts[1:5]), scientific = F)`.
 
 ## Problem 3
 
@@ -150,19 +151,25 @@ baseline = read_csv(file = "MCI_baseline.csv", skip=1) %>%
 baseline
 ```
 
-The import process involves reading the CSV file, cleaning column names, encoding categorical variables, converting data types where necessary, and handling missing data to prepare the dataset for further analysis. There are `r nrow(baseline)` participants were recruited in the dataset, and of these, `r sum(!is.na(baseline$age_at_onset))` developed MCI. The average baseline age is `r round(mean(baseline$current_age, na.rm=TRUE),digits = 0)` years old. There are `r round(sum(baseline$sex == "Female" & baseline$apoe4 == "APOE4 carrier") / sum(baseline$sex == "Female"), digits = 4) * 100`% of women in the study are APOE4 carriers.
+The import process involves skipping the first line when reading the CSV file, cleaning column names with `janitor` function, encoding categorical variables using `mutate`, converting data types where necessary, and handling missing data to prepare the dataset for further analysis. There are `r nrow(baseline)` participants were recruited in the dataset, and of these, `r sum(!is.na(baseline$age_at_onset))` developed MCI. The average baseline age is `r round(mean(baseline$current_age, na.rm=TRUE),digits = 0)` years old. There are `r round(sum(baseline$sex == "Female" & baseline$apoe4 == "APOE4 carrier") / sum(baseline$sex == "Female"), digits = 4) * 100`% of women in the study are APOE4 carriers.
 
 Import, clean, and tidy mci_amyloid
 
 ```{r}
 amyloid <- read_csv("mci_amyloid.csv", skip=1) %>%
   janitor::clean_names() %>%
-  mutate_at(vars(baseline, time_2, time_4, time_6, time_8), ~ as.numeric(.))
+  pivot_longer(baseline:time_8,
+               names_prefix="time_",
+               names_to="years_since_diagnosed",
+               values_to="apoe4") %>%
+  mutate(years_since_diagnosed=replace(years_since_diagnosed, years_since_diagnosed=="baseline", 0)) %>%
+  mutate(years_since_diagnosed=as.numeric(years_since_diagnosed)) 
+  
 amyloid
 ```
 
 The import process for the `amyloid` dataset consists of several key steps. First, the CSV file is read using `read_csv`, and the header row is skipped to ensure data accuracy. Next, the `janitor::clean_names()` function is applied to standardize and clean the column names. Categorical variables are encoded for analysis, and data types are converted as needed. 
-There are `r nrow(distinct(amyloid, study_id))` participants were recruited in the dataset. The average baseline time is `r round(mean(amyloid$baseline, na.rm=TRUE),digits = 2)` years.
+There are `r nrow(distinct(amyloid, study_id))` participants were recruited in the dataset, with `r ncol(amyloid)` variables. 
 
 
 Identify participants unique to each dataset
@@ -187,7 +194,7 @@ MCI_combined <- baseline %>%
   inner_join(amyloid, by = c("id" = "study_id"))
 ```
 
-The resulting dataset `MCI_combined` retains participants who appear in both the `baseline` and `amyloid` datasets, and has `r nrow(MCI_combined)` participants and `r ncol(MCI_combined)` variables. The variables include `r colnames(MCI_combined)`.
+The resulting dataset `MCI_combined` retains participants who appear in both the `baseline` and `amyloid` datasets, and has `r nrow(MCI_combined)/5` participants and `r ncol(MCI_combined)` variables. The variables include `r colnames(MCI_combined)`.
 
 
 Export the combined dataset as a CSV
